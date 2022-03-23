@@ -13,24 +13,44 @@ func CreateTaskRepository(db database.DBer) *TaskRepository {
 	return &TaskRepository{db: db}
 }
 
-func (tr *TaskRepository) AddTask(task *Task) {
-	tr.db.Add(task)
+func (tr *TaskRepository) AddTask(task *Task) error {
+	err := tr.db.Add(task)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func (tr *TaskRepository) DeleteTask(text string) {
+func (tr *TaskRepository) DeleteTask(text string) error {
 	tr.db.Delete(text)
+	return nil
 }
 
-func (tr *TaskRepository) GetTask(text string) *Task {
-	return tr.GetTask(text)
+func (tr *TaskRepository) GetTask(text string) (*Task, error) {
+	t, err := tr.db.Get(text)
+	if err != nil {
+		return nil, err
+	}
+
+	return t, nil
 }
 
-func (tr *TaskRepository) CompleteTask(text string) {
-	task := tr.db.Get(text)
+func (tr *TaskRepository) CompleteTask(text string) error {
+	task, err := tr.db.Get(text)
+	if err != nil {
+		return err
+	}
 	task.SetStatus(true)
-	tr.db.Edit(text, task)
+	err = tr.db.Edit(text, task)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func (tr *TaskRepository) GetAllTasks() []*Task {
-	return tr.db.GetAll()
+func (tr *TaskRepository) GetAllTasks() ([]*Task, error) {
+	t, err := tr.db.GetAll()
+	return t, err
 }

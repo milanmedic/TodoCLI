@@ -31,16 +31,16 @@ func ConnectToDb() (*sql.DB, error) {
 }
 
 func SetupTables(db *sql.DB) error {
-	stmt, err := db.Prepare(`CREATE TABLE if not exists task (
-		"id" INTEGER
-		"text" TEXT,
-		"status" BOOLEAN,
-		PRIMARY KEY("id" AUTOINCREMENT);`)
+	stmt, err := db.Prepare(`
+		CREATE TABLE IF NOT EXISTS	 task (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		text TEXT UNIQUE,
+		status BOOLEAN);`)
 	if err != nil {
 		return err
 	}
 
-	_, err = stmt.Exec(nil)
+	_, err = stmt.Exec()
 	if err != nil {
 		return err
 	}
@@ -58,18 +58,138 @@ func (sd *SqlDb) CloseConnection() error {
 	return nil
 }
 
-func (sd *SqlDb) Add(task *Task) {}
+func (sd *SqlDb) Add(task *Task) error {
+	tx, err := sd.db.Begin()
+	if err != nil {
+		return err
+	}
 
-func (sd *SqlDb) Delete(id string) {}
+	stmt, err := tx.Prepare(`INSERT INTO task(text, status) VALUES(?, ?);`)
+	if err != nil {
+		_ = tx.Rollback()
+		return err
+	}
+	defer stmt.Close()
 
-func (sd *SqlDb) Get(id string) *Task {
+	_, err = stmt.Exec(task.GetText(), task.GetStatus())
+	if err != nil {
+		_ = tx.Rollback()
+		return err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
-func (sd *SqlDb) Edit(id string, task *Task) *Task {
+func (sd *SqlDb) Delete(text string) error {
+	tx, err := sd.db.Begin()
+	if err != nil {
+		return err
+	}
+
+	stmt, err := tx.Prepare(`DELETE FROM task WHERE text=?;`)
+	if err != nil {
+		_ = tx.Rollback()
+		return err
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(text)
+	if err != nil {
+		_ = tx.Rollback()
+		return err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
-func (sd *SqlDb) GetAll() []*Task {
+func (sd *SqlDb) Get(text string) (*Task, error) {
+	stmt, err := sd.db.Prepare(`SELECT * from task WHERE text LIKE ?;`)
+	if err != nil {
+		return nil, err
+	}
+	defer stmt.Close()
+
+	row := stmt.QueryRow(text)
+
+	var id int
+	var txt string
+	var sts bool
+	err = row.Scan(&id, &txt, &sts)
+	if err != nil {
+		return nil, err
+	}
+
+	t := new(Task)
+	t.SetText(txt)
+	t.SetStatus(sts)
+
+	return t, nil
+}
+
+func (sd *SqlDb) Edit(text string, task *Task) error {
+
+	tx, err := sd.db.Begin()
+	if err != nil {
+		return err
+	}
+
+	stmt, err := sd.db.Prepare(`
+	UPDATE task
+	SET text = ?,
+		status = ?
+	WHERE
+		text=?;`)
+	if err != nil {
+		_ = tx.Rollback()
+		return err
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(task.GetText(), task.GetStatus(), text)
+	if err != nil {
+		_ = tx.Rollback()
+		return err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+
 	return nil
+}
+
+func (sd *SqlDb) GetAll() ([]*Task, error) {
+	stmt, err := sd.db.Prepare(`SELECT text, status FROM task;`)
+	if err != nil {
+		return nil, err
+	}
+	var tasks []*Task = []*Task{}
+
+	rows, err := stmt.Query()
+	for rows.Next() {
+		var t Task
+		var txt string
+		var sts bool
+		if err := rows.Scan(&txt, &sts); err != nil {
+			return nil, err
+		}
+		t.SetText(txt)
+		t.SetStatus(sts)
+		tasks = append(tasks, &t)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	defer stmt.Close()
+
+	return tasks, nil
 }

@@ -1,10 +1,12 @@
 package main
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	taskDb "todocli.mmedic.com/m/v2/src/persistence/db/sqlite_db"
 	taskRepo "todocli.mmedic.com/m/v2/src/persistence/task_repository"
@@ -13,7 +15,7 @@ import (
 
 func main() {
 	// -action="action"
-	action := flag.String("action", "add", "Specifies the action for the todo application.")
+	action := flag.String("action", "list", "Specifies the action for the todo application.")
 	flag.Parse()
 
 	PerformAction(*action)
@@ -33,13 +35,17 @@ func PerformAction(action string) {
 	case "intro":
 		PrintIntro()
 	case "add":
-		AddTask(ts)
+		err := AddTask(ts)
+		errHandler(err)
 	case "do":
-		CompleteTask(ts)
+		err := CompleteTask(ts)
+		errHandler(err)
 	case "list":
-		ListTasks(ts)
+		err := ListTasks(ts)
+		errHandler(err)
 	case "del":
-		DeleteTask(ts)
+		err := DeleteTask(ts)
+		errHandler(err)
 	default:
 		fmt.Printf("Action not defined.\n")
 	}
@@ -60,45 +66,46 @@ func ErrorHandler() func(err error) {
 	}
 }
 
-func AddTask(ts *taskService.TaskService) {
-	fmt.Println("Add task: ")
-	var text string
-	fmt.Scanf("%s", &text)
-	ts.AddTask(text)
-	return
-}
-
-func CompleteTask(ts *taskService.TaskService) {
-	fmt.Println("Complete task: ")
-	var text string
-	fmt.Scanf("%s", &text)
-	ts.CompleteTask(text)
-}
-
-func ListTasks(ts *taskService.TaskService) {
-	fmt.Println("All tasks")
-	ts.ListAllTasks()
-}
-
-func DeleteTask(ts *taskService.TaskService) {
-	fmt.Println("Delete task: ")
-	var text string
-	fmt.Scanf("%s", &text)
-	ts.DeleteTask(text)
-}
-
 func PrintIntro() {
 	fmt.Printf(`
-	Task is a CLI for managing your TODOs!
+Task is a CLI for managing your TODOs!
+Usage:
+task [command]
 
-	Usage:
-	task [command]
-  
-  	Available Commands:
-		add         Add a new task to your TODO list
-		do          Mark a task on your TODO list as complete
-		list        List all of your incomplete tasks
-	
-  	Use "task [command] --help" for more information about a command.
-	`)
+Available Commands:
+	add         Add a new task to your TODO list
+	do          Mark a task on your TODO list as complete
+	list        List all of your incomplete tasks
+
+Use "task [command] --help" for more information about a command.`)
+}
+
+func AddTask(ts *taskService.TaskService) error {
+	fmt.Println("Add task: ")
+	text := ScanInput()
+	return ts.AddTask(text)
+}
+
+func CompleteTask(ts *taskService.TaskService) error {
+	fmt.Println("Complete task: ")
+	text := ScanInput()
+	return ts.CompleteTask(text)
+}
+
+func ListTasks(ts *taskService.TaskService) error {
+	fmt.Println("All tasks")
+	return ts.ListAllTasks()
+}
+
+func DeleteTask(ts *taskService.TaskService) error {
+	fmt.Println("Delete task: ")
+	text := ScanInput()
+	return ts.DeleteTask(text)
+}
+
+func ScanInput() string {
+	reader := bufio.NewReader(os.Stdin)
+	txt, _ := reader.ReadString('\n')
+	before, _, _ := strings.Cut(txt, "\n")
+	return before
 }

@@ -5,9 +5,9 @@ import (
 )
 
 type TaskRepositer interface {
-	AddTask(task *Task)
-	DeleteTask(text string)
-	GetTask(text string) *Task
-	CompleteTask(text string)
-	GetAllTasks() []*Task
+	AddTask(task *Task) error
+	DeleteTask(text string) error
+	GetTask(text string) (*Task, error)
+	CompleteTask(text string) error
+	GetAllTasks() ([]*Task, error)
 }

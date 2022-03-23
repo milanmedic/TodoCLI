@@ -15,53 +15,81 @@ func CreateTaskService(tr taskRepo.TaskRepositer) *TaskService {
 	return &TaskService{tr: tr}
 }
 
-func (ts *TaskService) AddTask(text string) {
+func (ts *TaskService) AddTask(text string) error {
 	t := new(Task)
 	t.SetText(text)
-	ts.tr.AddTask(t)
-}
-
-func (ts *TaskService) CompleteTask(text string) {
-	ts.tr.CompleteTask(text)
-}
-
-func (ts *TaskService) DeleteTask(text string) {
-	ts.tr.DeleteTask(text)
-}
-
-func (ts *TaskService) GetAllTasks() []*Task {
-	return ts.tr.GetAllTasks()
-}
-
-func (ts *TaskService) ListAllTasks() {
-	tasks := ts.tr.GetAllTasks()
-	for _, t := range tasks {
-		fmt.Printf(`
-		-----------
-		Task: %s
-		Status %t
-		\n`, t.GetText(), t.GetStatus())
+	err := ts.tr.AddTask(t)
+	if err != nil {
+		return err
 	}
+
+	return nil
 }
 
-func (ts *TaskService) GetCompletedTasks() []*Task {
-	tasks := ts.tr.GetAllTasks()
+func (ts *TaskService) CompleteTask(text string) error {
+	err := ts.tr.CompleteTask(text)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (ts *TaskService) DeleteTask(text string) error {
+	err := ts.tr.DeleteTask(text)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (ts *TaskService) GetAllTasks() ([]*Task, error) {
+	t, err := ts.tr.GetAllTasks()
+	if err != nil {
+		return nil, err
+	}
+
+	return t, nil
+}
+
+func (ts *TaskService) ListAllTasks() error {
+	tasks, err := ts.tr.GetAllTasks()
+	if err != nil {
+		return err
+	}
+
+	for _, t := range tasks {
+		fmt.Printf("-----------Task: %s\nStatus %t\n", t.GetText(), t.GetStatus())
+	}
+
+	return nil
+}
+
+func (ts *TaskService) GetCompletedTasks() ([]*Task, error) {
+	tasks, err := ts.tr.GetAllTasks()
+	if err != nil {
+		return nil, err
+	}
+
 	var completedTasks []*Task
 	for _, t := range tasks {
 		if !t.GetStatus() {
 			completedTasks = append(completedTasks, t)
 		}
 	}
-	return completedTasks
+	return completedTasks, nil
 }
 
-func (ts *TaskService) ListCompletedTasks() {
-	tasks := ts.GetCompletedTasks()
-	for _, t := range tasks {
-		fmt.Printf(`
-		-----------
-		Task: %s
-		Status %t
-		\n`, t.GetText(), t.GetStatus())
+func (ts *TaskService) ListCompletedTasks() error {
+	tasks, err := ts.GetCompletedTasks()
+	if err != nil {
+		return err
 	}
+
+	for _, t := range tasks {
+		fmt.Printf("-----------Task: %s\nStatus %t\n", t.GetText(), t.GetStatus())
+	}
+
+	return err
 }

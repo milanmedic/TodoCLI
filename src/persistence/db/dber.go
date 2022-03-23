@@ -5,9 +5,9 @@ import (
 )
 
 type DBer interface {
-	Add(task *Task)
-	Delete(id string)
-	Get(id string) *Task
-	Edit(id string, task *Task) *Task
-	GetAll() []*Task
+	Add(task *Task) error
+	Delete(id string) error
+	Get(id string) (*Task, error)
+	Edit(id string, task *Task) error
+	GetAll() ([]*Task, error)
 }

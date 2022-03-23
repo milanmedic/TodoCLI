@@ -6,14 +6,14 @@ import (
 	"log"
 	"os"
 
-	. "todocli.mmedic.com/m/v2/src/persistence/db/in_memory_db"
-	. "todocli.mmedic.com/m/v2/src/persistence/task_repository"
-	. "todocli.mmedic.com/m/v2/src/services/task_service"
+	taskDb "todocli.mmedic.com/m/v2/src/persistence/db/sqlite_db"
+	taskRepo "todocli.mmedic.com/m/v2/src/persistence/task_repository"
+	taskService "todocli.mmedic.com/m/v2/src/services/task_service"
 )
 
 func main() {
 	// -action="action"
-	action := flag.String("action", "intro", "Specifies the action for the todo application.")
+	action := flag.String("action", "add", "Specifies the action for the todo application.")
 	flag.Parse()
 
 	PerformAction(*action)
@@ -22,29 +22,69 @@ func main() {
 
 func PerformAction(action string) {
 
-	taskDb := CreateTaskDb()
-	taskRepository := CreateTaskRepository(taskDb)
-	taskService := CreateTaskService(taskRepository)
 	errHandler := ErrorHandler()
+	tdb, err := taskDb.CreateTaskDb()
+	errHandler(err)
+	defer Cleanup(tdb, errHandler)
+	tr := taskRepo.CreateTaskRepository(tdb)
+	ts := taskService.CreateTaskService(tr)
 
 	switch action {
 	case "intro":
 		PrintIntro()
 	case "add":
-		err := taskService.AddTask()
-		errHandler(err)
+		AddTask(ts)
 	case "do":
-		err := taskService.CompleteTask()
-		errHandler(err)
+		CompleteTask(ts)
 	case "list":
-		err := taskService.GetAllTasks()
-		errHandler(err)
+		ListTasks(ts)
 	case "del":
-		err := taskService.DeleteTask()
-		errHandler(err)
+		DeleteTask(ts)
 	default:
 		fmt.Printf("Action not defined.\n")
 	}
+}
+
+func Cleanup(tdb *taskDb.SqlDb, errHandler func(error)) {
+	err := tdb.CloseConnection()
+	errHandler(err)
+}
+
+func ErrorHandler() func(err error) {
+	errorLog := log.New(os.Stderr, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
+	return func(err error) {
+		if err != nil {
+			errorLog.Fatal(err.Error())
+			panic(err)
+		}
+	}
+}
+
+func AddTask(ts *taskService.TaskService) {
+	fmt.Println("Add task: ")
+	var text string
+	fmt.Scanf("%s", &text)
+	ts.AddTask(text)
+	return
+}
+
+func CompleteTask(ts *taskService.TaskService) {
+	fmt.Println("Complete task: ")
+	var text string
+	fmt.Scanf("%s", &text)
+	ts.CompleteTask(text)
+}
+
+func ListTasks(ts *taskService.TaskService) {
+	fmt.Println("All tasks")
+	ts.ListAllTasks()
+}
+
+func DeleteTask(ts *taskService.TaskService) {
+	fmt.Println("Delete task: ")
+	var text string
+	fmt.Scanf("%s", &text)
+	ts.DeleteTask(text)
 }
 
 func PrintIntro() {
@@ -61,14 +101,4 @@ func PrintIntro() {
 	
   	Use "task [command] --help" for more information about a command.
 	`)
-}
-
-func ErrorHandler() func(err error) {
-	errorLog := log.New(os.Stderr, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
-	return func(err error) {
-		if err != nil {
-			errorLog.Fatal(err.Error())
-			panic(err)
-		}
-	}
 }

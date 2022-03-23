@@ -5,8 +5,8 @@ type Task struct {
 	status bool
 }
 
-func CreateTask(text string, status bool) *Task {
-	return &Task{text: text, status: status}
+func CreateTask(text string) *Task {
+	return &Task{text: text, status: false}
 }
 
 func (t *Task) GetText() string {
@@ -15,6 +15,10 @@ func (t *Task) GetText() string {
 
 func (t *Task) SetText(text string) {
 	t.text = text
+}
+
+func (t *Task) GetStatus() bool {
+	return t.status
 }
 
 func (t *Task) SetStatus(status bool) {

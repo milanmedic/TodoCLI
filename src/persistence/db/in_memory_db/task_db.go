@@ -12,7 +12,7 @@ var taskDb *TaskInMemDb = nil
 
 func CreateTaskDb() *TaskInMemDb {
 	if taskDb == nil {
-		taskDb = &TaskInMemDb{}
+		taskDb = &TaskInMemDb{tasks: make(map[string]*Task)}
 	}
 	return taskDb
 }

@@ -15,11 +15,10 @@ import (
 
 func main() {
 	// -action="action"
-	action := flag.String("action", "list", "Specifies the action for the todo application.")
+	action := flag.String("action", "today", "Specifies the action for the todo application.")
 	flag.Parse()
 
 	PerformAction(*action)
-
 }
 
 func PerformAction(action string) {
@@ -45,6 +44,9 @@ func PerformAction(action string) {
 		errHandler(err)
 	case "del":
 		err := DeleteTask(ts)
+		errHandler(err)
+	case "today":
+		err := CompletedTodaysTasks(ts)
 		errHandler(err)
 	default:
 		fmt.Printf("Action not defined.\n")
@@ -101,6 +103,10 @@ func DeleteTask(ts *taskService.TaskService) error {
 	fmt.Println("Delete task: ")
 	text := ScanInput()
 	return ts.DeleteTask(text)
+}
+
+func CompletedTodaysTasks(ts *taskService.TaskService) error {
+	return ts.ListTodaysCompletedTasks()
 }
 
 func ScanInput() string {

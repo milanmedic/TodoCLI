@@ -10,4 +10,5 @@ type DBer interface {
 	Get(id string) (*Task, error)
 	Edit(id string, task *Task) error
 	GetAll() ([]*Task, error)
+	GetFromRange() ([]*Task, error)
 }

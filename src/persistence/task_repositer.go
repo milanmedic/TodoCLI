@@ -10,4 +10,5 @@ type TaskRepositer interface {
 	GetTask(text string) (*Task, error)
 	CompleteTask(text string) error
 	GetAllTasks() ([]*Task, error)
+	GetTodaysTasks() ([]*Task, error)
 }

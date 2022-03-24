@@ -2,6 +2,8 @@ package sqlitedb
 
 import (
 	"database/sql"
+	"fmt"
+	"time"
 
 	_ "github.com/mattn/go-sqlite3"
 
@@ -35,7 +37,8 @@ func SetupTables(db *sql.DB) error {
 		CREATE TABLE IF NOT EXISTS	 task (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		text TEXT UNIQUE,
-		status BOOLEAN);`)
+		status BOOLEAN,
+		completed_at TEXT);`)
 	if err != nil {
 		return err
 	}
@@ -64,14 +67,14 @@ func (sd *SqlDb) Add(task *Task) error {
 		return err
 	}
 
-	stmt, err := tx.Prepare(`INSERT INTO task(text, status) VALUES(?, ?);`)
+	stmt, err := tx.Prepare(`INSERT INTO task(text, status, completed_at) VALUES(?, ?, ?);`)
 	if err != nil {
 		_ = tx.Rollback()
 		return err
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(task.GetText(), task.GetStatus())
+	_, err = stmt.Exec(task.GetText(), task.GetStatus(), "")
 	if err != nil {
 		_ = tx.Rollback()
 		return err
@@ -111,7 +114,7 @@ func (sd *SqlDb) Delete(text string) error {
 }
 
 func (sd *SqlDb) Get(text string) (*Task, error) {
-	stmt, err := sd.db.Prepare(`SELECT * from task WHERE text LIKE ?;`)
+	stmt, err := sd.db.Prepare(`SELECT text, status from task WHERE text LIKE ?;`)
 	if err != nil {
 		return nil, err
 	}
@@ -119,10 +122,9 @@ func (sd *SqlDb) Get(text string) (*Task, error) {
 
 	row := stmt.QueryRow(text)
 
-	var id int
 	var txt string
 	var sts bool
-	err = row.Scan(&id, &txt, &sts)
+	err = row.Scan(&txt, &sts)
 	if err != nil {
 		return nil, err
 	}
@@ -144,7 +146,8 @@ func (sd *SqlDb) Edit(text string, task *Task) error {
 	stmt, err := sd.db.Prepare(`
 	UPDATE task
 	SET text = ?,
-		status = ?
+		status = ?,
+		completed_at = ?
 	WHERE
 		text=?;`)
 	if err != nil {
@@ -153,7 +156,9 @@ func (sd *SqlDb) Edit(text string, task *Task) error {
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(task.GetText(), task.GetStatus(), text)
+	y, m, d := time.Now().Date()
+	today := fmt.Sprintf("%d-%s-%d", d, m, y)
+	_, err = stmt.Exec(task.GetText(), task.GetStatus(), today, text)
 	if err != nil {
 		_ = tx.Rollback()
 		return err
@@ -174,6 +179,46 @@ func (sd *SqlDb) GetAll() ([]*Task, error) {
 	var tasks []*Task = []*Task{}
 
 	rows, err := stmt.Query()
+	for rows.Next() {
+		var t Task
+		var txt string
+		var sts bool
+		if err := rows.Scan(&txt, &sts); err != nil {
+			return nil, err
+		}
+		t.SetText(txt)
+		t.SetStatus(sts)
+		tasks = append(tasks, &t)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	defer stmt.Close()
+
+	return tasks, nil
+}
+
+func (sd *SqlDb) GetFromRange() ([]*Task, error) {
+
+	y, m, d := time.Now().Date()
+	today := fmt.Sprintf("%d-%s-%d", d, m, y)
+
+	stmt, err := sd.db.Prepare(`
+		SELECT
+			text,
+			status
+		FROM
+		task
+		WHERE
+		completed_at LIKE ?;`)
+	if err != nil {
+		return nil, err
+	}
+
+	var tasks []*Task = []*Task{}
+
+	rows, err := stmt.Query(today)
 	for rows.Next() {
 		var t Task
 		var txt string

@@ -54,3 +54,8 @@ func (tr *TaskRepository) GetAllTasks() ([]*Task, error) {
 	t, err := tr.db.GetAll()
 	return t, err
 }
+
+func (tr *TaskRepository) GetTodaysTasks() ([]*Task, error) {
+	t, err := tr.db.GetFromRange()
+	return t, err
+}

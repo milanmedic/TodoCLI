@@ -60,7 +60,7 @@ func (ts *TaskService) ListAllTasks() error {
 	}
 
 	for _, t := range tasks {
-		fmt.Printf("-----------Task: %s\nStatus %t\n", t.GetText(), t.GetStatus())
+		fmt.Printf("-----------Task: %s\nStatus: %t\n", t.GetText(), t.GetStatus())
 	}
 
 	return nil
@@ -88,7 +88,24 @@ func (ts *TaskService) ListCompletedTasks() error {
 	}
 
 	for _, t := range tasks {
-		fmt.Printf("-----------Task: %s\nStatus %t\n", t.GetText(), t.GetStatus())
+		fmt.Printf("-----------\nTask: %s\nStatus: %t\n", t.GetText(), t.GetStatus())
+	}
+
+	return err
+}
+
+func (ts *TaskService) GetTodaysCompletedTasks() ([]*Task, error) {
+	return ts.tr.GetTodaysTasks()
+}
+
+func (ts *TaskService) ListTodaysCompletedTasks() error {
+	tasks, err := ts.GetTodaysCompletedTasks()
+	if err != nil {
+		return err
+	}
+
+	for _, t := range tasks {
+		fmt.Printf("-----------\nTask: %s\nStatus: %t\n", t.GetText(), t.GetStatus())
 	}
 
 	return err
